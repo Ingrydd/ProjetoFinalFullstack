@@ -5,14 +5,19 @@ const axios = require('axios');
 const Book = require('../models/Book');
 
 const router = express.Router();
+const searchCache = new Map(); 
 
+// Middleware de Autenticação
 const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ message: 'Token não fornecido.' });
+
   const parts = authHeader.split(' ');
   if (parts.length !== 2) return res.status(401).json({ message: 'Erro no formato do token.' });
+
   const [scheme, token] = parts;
   if (!/^Bearer$/i.test(scheme)) return res.status(401).json({ message: 'Token mal formatado.' });
+
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) return res.status(401).json({ message: 'Token inválido.' });
     req.userId = decoded.id;
@@ -20,22 +25,39 @@ const authMiddleware = (req, res, next) => {
   });
 };
 
+// Aplica o middleware de autenticação a todas as rotas deste arquivo
 router.use(authMiddleware);
 
+// Rota de Busca com Cache
 router.get('/search', async (req, res) => {
     const { q } = req.query;
     if (!q) {
         return res.status(400).json({ message: 'O termo de busca é obrigatório.' });
     }
+
+    if (searchCache.has(q)) {
+        console.log(`CACHE HIT: Retornando busca do cache para: ${q}`);
+        return res.status(200).json(searchCache.get(q));
+    }
+
     try {
+        console.log(`CACHE MISS: Buscando na API externa para: ${q}`);
         const response = await axios.get(`https://openlibrary.org/search.json?q=${q}&limit=20`);
+        
+        searchCache.set(q, response.data);
+
+        if (searchCache.size > 100) {
+            const firstKey = searchCache.keys().next().value;
+            searchCache.delete(firstKey);
+        }
+
         return res.status(200).json(response.data);
     } catch (error) {
         return res.status(500).json({ message: 'Erro ao realizar a busca externa.' });
     }
 });
 
-// Rota POST
+// Rota para Salvar um Livro
 router.post('/books', async (req, res) => {
   try {
     const { titulo, autor, capa_id } = req.body;
@@ -57,7 +79,7 @@ router.post('/books', async (req, res) => {
   }
 });
 
-// Rota GET
+// Rota para Listar os Livros Salvos
 router.get('/books', async (req, res) => {
   try {
     const books = await Book.find({ usuario: req.userId }).sort({ createdAt: -1 });
@@ -67,7 +89,7 @@ router.get('/books', async (req, res) => {
   }
 });
 
-// Rota DELETE
+// Rota para Deletar um Livro
 router.delete('/books/:id', async (req, res) => {
   try {
     const { id } = req.params;

@@ -1,11 +1,20 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
+const rateLimit = require('express-rate-limit');
 const User = require('../models/User');
+
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 10,
+    message: 'Muitas tentativas de login a partir deste IP. Tente novamente em 15 minutos.',
+    standardHeaders: true,
+    legacyHeaders: false,
+});
 
 const router = express.Router();
 
 // Rota de cadastro
-router.post('/register', async (req, res) => {
+router.post('/register', loginLimiter, async (req, res) => {
   const { email, senha } = req.body;
   try {
     if (!email || !senha) {
@@ -23,7 +32,7 @@ router.post('/register', async (req, res) => {
 });
 
 // Rota de login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   const { email, senha } = req.body;
   if (!email || !senha) {
     return res.status(400).json({ message: 'Por favor, forneça email e senha.' });

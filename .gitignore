@@ -13,3 +13,5 @@ yarn-error.log*
 # Pasta de build
 dist/
 build/
+
+/venv/

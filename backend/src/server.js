@@ -5,6 +5,7 @@ const compression = require('compression');
 const morgan = require('morgan');
 const connectDB = require('./config/database');
 const routes = require('./routes');
+const helmet = require('helmet');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,6 +13,7 @@ const PORT = process.env.PORT || 3000;
 connectDB();
 
 // Middlewares
+app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(compression());

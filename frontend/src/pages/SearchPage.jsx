@@ -2,6 +2,7 @@ import { useState } from 'react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 
 import { 
   TextField, 
@@ -13,7 +14,8 @@ import {
   ListItemText, 
   IconButton,
   Box, 
-  Container 
+  Container,
+  Stack
 } from "@mui/material";
 import SaveIcon from '@mui/icons-material/Save';
 
@@ -81,9 +83,14 @@ function SearchPage() {
         <Typography variant="h4" component="h1" gutterBottom>
           Buscar Livros
         </Typography>
-        <Button variant="outlined" onClick={handleLogout}>
-          Logout
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button component={RouterLink} to="/saved-books" variant="contained">
+            Ver Salvos
+          </Button>
+          <Button variant="outlined" onClick={handleLogout}>
+            Logout
+          </Button>
+        </Stack>
       </Box>
 
       <Box component="form" onSubmit={handleBusca} sx={{ display: 'flex', gap: 1, mb: 2 }}>

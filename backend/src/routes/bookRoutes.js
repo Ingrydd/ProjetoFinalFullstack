@@ -40,6 +40,10 @@ router.post('/books', async (req, res) => {
   try {
     const { titulo, autor, capa_id } = req.body;
 
+    if (!titulo || !autor) {
+      return res.status(400).json({ message: 'Os campos título e autor são obrigatórios.' });
+    }
+
     const book = await Book.create({
       titulo,
       autor,

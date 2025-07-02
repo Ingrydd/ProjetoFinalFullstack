@@ -41,7 +41,7 @@ function SearchPage() {
 
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get(`http://localhost:3000/search?q=${query}`, {
+      const res = await axios.get(`http://localhost:3000/books?q=${query}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setLivros(res.data.docs || []);

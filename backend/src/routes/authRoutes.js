@@ -1,7 +1,9 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const rateLimit = require('express-rate-limit');
+const sanitize = require('mongo-sanitize');
 const User = require('../models/User');
+const router = express.Router();
 
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -11,7 +13,6 @@ const loginLimiter = rateLimit({
     legacyHeaders: false,
 });
 
-const router = express.Router();
 
 // Rota de cadastro
 router.post('/register', loginLimiter, async (req, res) => {
@@ -33,27 +34,30 @@ router.post('/register', loginLimiter, async (req, res) => {
 
 // Rota de login
 router.post('/login', loginLimiter, async (req, res) => {
-  const { email, senha } = req.body;
-  if (!email || !senha) {
-    return res.status(400).json({ message: 'Por favor, forneça email e senha.' });
-  }
-  try {
-    const user = await User.findOne({ email }).select('+senha');
-    if (!user) {
-      return res.status(401).json({ message: 'Email ou senha inválidos.' });
+    // Sanitiza a entrada do usuário
+    const email = sanitize(req.body.email);
+    const senha = req.body.senha;
+
+    if (!email || !senha) {
+        return res.status(400).json({ message: 'Por favor, forneça email e senha.' });
     }
-    const isMatch = await user.comparePassword(senha);
-    if (!isMatch) {
-      return res.status(401).json({ message: 'Email ou senha inválidos.' });
+    try {
+        const user = await User.findOne({ email }).select('+senha');
+        if (!user) {
+            return res.status(401).json({ message: 'Email ou senha inválidos.' });
+        }
+        const isMatch = await user.comparePassword(senha);
+        if (!isMatch) {
+            return res.status(401).json({ message: 'Email ou senha inválidos.' });
+        }
+        const payload = { id: user.id };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, {
+            expiresIn: '1d'
+        });
+        return res.status(200).json({ token });
+    } catch (error) {
+        return res.status(500).json({ message: 'Erro interno no servidor.' });
     }
-    const payload = { id: user.id };
-    const token = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: '1d'
-    });
-    return res.status(200).json({ token });
-  } catch (error) {
-    return res.status(500).json({ message: 'Erro interno no servidor.' });
-  }
 });
 
 module.exports = router;
